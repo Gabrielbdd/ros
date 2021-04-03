@@ -1,10 +1,10 @@
 use core::fmt;
-use volatile::Volatile;
 use lazy_static::lazy_static;
 use spin::Mutex;
+use volatile::Volatile;
 
 lazy_static! {
-    pub static ref WRITER: Mutex<Writer> =  Mutex::new(Writer {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::White, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
@@ -25,7 +25,11 @@ macro_rules! println {
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    WRITER.lock().write_fmt(args).unwrap();
+    use x86_64::instructions::interrupts;
+
+    interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
 
 #[allow(dead_code)]
@@ -89,20 +93,20 @@ impl Writer {
                 if self.column_position >= BUFFER_WIDTH {
                     self.new_line();
                 }
-                
+
                 let row = BUFFER_HEIGHT - 1;
                 let col = self.column_position;
                 let color_code = self.color_code;
-                
+
                 self.buffer.chars[row][col].write(ScreenChar {
                     ascii_character: byte,
                     color_code,
                 });
                 self.column_position += 1;
-            },
+            }
         }
     }
-    
+
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
@@ -122,7 +126,7 @@ impl Writer {
         self.clear_row(BUFFER_HEIGHT - 1);
         self.column_position = 0;
     }
-    
+
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
             ascii_character: b' ',
@@ -155,10 +159,16 @@ fn test_println_many() {
 
 #[test_case]
 fn test_println_output() {
+    use core::fmt::Write;
+    use x86_64::instructions::interrupts;
+
     let s = "Some test string that fits on a single line";
-    println!("{}", s);
-    for (i, c) in s.chars().enumerate() {
-        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read();
-        assert_eq!(char::from(screen_char.ascii_character), c);
-    }
+    interrupts::without_interrupts(|| {
+        let mut writer = WRITER.lock();
+        writeln!(writer, "\n{}", s).expect("writeln failed");
+        for (i, c) in s.chars().enumerate() {
+            let screen_char = writer.buffer.chars[BUFFER_HEIGHT - 2][i].read();
+            assert_eq!(char::from(screen_char.ascii_character), c);
+        }
+    });
 }

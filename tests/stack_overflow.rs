@@ -48,7 +48,7 @@ extern "x86-interrupt" fn test_double_fault_handler(
 ) -> ! {
     serial_print!("[ok]");
     exit_qemu(QemuExitCode::Success);
-    loop {}
+    ros::hlt_loop();
 }
 
 pub fn test_init_idt() {
