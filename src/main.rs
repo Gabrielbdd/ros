@@ -10,9 +10,9 @@ use ros::println;
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");
-    
+
     ros::init();
-    
+
     #[cfg(test)]
     test_main();
 
