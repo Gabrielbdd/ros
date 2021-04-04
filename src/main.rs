@@ -4,13 +4,12 @@
 #![test_runner(ros::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use ros::println;
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    println!("Hello World{}", "!");
+entry_point!(kernel_main);
 
+fn kernel_main(_boot_info: &'static BootInfo) -> ! {
     ros::init();
 
     #[cfg(test)]
@@ -22,6 +21,8 @@ pub extern "C" fn _start() -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    use ros::println;
+
     println!("{}", info);
     ros::hlt_loop();
 }
