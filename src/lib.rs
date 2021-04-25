@@ -8,16 +8,16 @@
 
 extern crate alloc;
 
+pub mod allocator;
+pub mod gdt;
+pub mod interrupts;
+pub mod memory;
 pub mod serial;
 pub mod vga_buffer;
-pub mod interrupts;
-pub mod gdt;
-pub mod memory;
-pub mod allocator;
 use core::panic::PanicInfo;
 
 #[cfg(test)]
-use bootloader::{BootInfo, entry_point};
+use bootloader::{entry_point, BootInfo};
 
 #[cfg(test)]
 entry_point!(test_kernel_main);
